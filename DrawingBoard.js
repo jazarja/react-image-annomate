@@ -16,7 +16,7 @@ import {
   CircleIcon,
   CloseIcon,
   Pencil,
-} from "../svg";
+} from "./src/svg";
 import {
   Col,
   Container,
