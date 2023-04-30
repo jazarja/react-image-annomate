@@ -1,4 +1,4 @@
-# react-image-annomate
+
 <h2 align="center">
   React Image Annomate
 </h2>
