@@ -21,7 +21,7 @@ npm i react-image-annomate
 ## Usage
 
 ```js
-import DrawingBoard from 'react-image-annomate/dist/components/DrawingBoard';
+import DrawingBoard from 'react-image-annomate';
 
   return (
      <DrawingBoard/>
