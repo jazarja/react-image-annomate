@@ -18,6 +18,15 @@ Once the user is satisfied with their changes, they can download the modified im
 ```
 npm i react-image-annomate
 ```
+## Usage
+
+```js
+import DrawingBoard from 'react-image-annomate/dist/components/DrawingBoard';
+
+  return (
+     <DrawingBoard/>
+  )
+```
 ## Screenshot
 <img src="https://res.cloudinary.com/deph1hkms/image/upload/v1682842201/PhotoAnnomate_-_Google_Chrome_30-Apr-23_1_25_08_PM_ngygis.png" alt="react-image-annomate example" width="800" height="600" />
 
