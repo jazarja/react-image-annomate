@@ -13,6 +13,11 @@ In addition to text, users can add circles to their image by selecting the circl
 Once the user is satisfied with their changes, they can download the modified image and close the Image Annomate. With its intuitive interface and flexible customization options, the Image Annomate is an essential tool for any application that requires image annotating or markup functionality.
 </p>
 
+## Installation
+
+```
+npm i react-image-annomate
+```
 ## Screenshot
 <img src="https://res.cloudinary.com/deph1hkms/image/upload/v1682842201/PhotoAnnomate_-_Google_Chrome_30-Apr-23_1_25_08_PM_ngygis.png" alt="react-image-annomate example" width="800" height="600" />
 
