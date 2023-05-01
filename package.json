@@ -1,6 +1,6 @@
 {
-  "name": "react-image-annomate",
-  "version": "1.0.11",
+  "name": "react-image-annotate-tool",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/components/DrawingBoard.js",
   "scripts": {
