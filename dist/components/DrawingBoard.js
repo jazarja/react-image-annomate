@@ -365,7 +365,7 @@ function DrawingBoard() {
   }, "Select File"), /*#__PURE__*/_react["default"].createElement("input", {
     id: "file-input",
     type: "file",
-    accept: "image/jpeg,image/png",
+    accept: "image/jpeg,image/jpg,image/png,image/webp,image/heif",
     onChange: handleFileChange,
     className: "file-input",
     hidden: true

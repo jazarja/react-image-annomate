@@ -4,7 +4,7 @@
 </h2>
 
 <p align="center">
- The React Image Annotate is a versatile tool that allows users to create and customize images with ease. With support for both PNG and JPEG formats, users can select the image they want to work with and start making changes right away.
+ The React Image Annotate is a versatile tool that allows users to create and customize images with ease. With support for PNG, JPEG, JPG, WEBP and HEIF formats, users can select the image they want to work with and start making changes right away.
 
 The component features a variety of customization options, including the ability to select fonts, adjust text size and color-picker. Users can also add text to their image by selecting the text icon and typing out their desired message.
 

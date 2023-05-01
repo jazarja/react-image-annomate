@@ -357,7 +357,7 @@ export default function DrawingBoard() {
               <input
                 id="file-input"
                 type="file"
-                accept="image/jpeg,image/png"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/heif"
                 onChange={handleFileChange}
                 className="file-input"
                 hidden
