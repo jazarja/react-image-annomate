@@ -1,6 +1,6 @@
 {
   "name": "react-image-annotate-tool",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "dist/components/DrawingBoard.js",
   "scripts": {
@@ -11,7 +11,15 @@
     "type": "git",
     "url": "git+https://github.com/suresh2291/react-image-annomate.git"
   },
-  "keywords": ["image-annotation", "image annotations", "react-image-annotation", "photo-annotate", "image annotations toolbar", "image annoatation tool","annotation toolbar"],
+  "keywords": [
+    "image-annotation",
+    "image annotations",
+    "react-image-annotation",
+    "photo-annotate",
+    "image annotations toolbar",
+    "image annoatation tool",
+    "annotation toolbar"
+  ],
   "author": "",
   "license": "MIT License",
   "bugs": {
@@ -23,7 +31,8 @@
     "react": "^17.0.2",
     "react-bootstrap": "^2.7.4",
     "react-dom": "^17.0.2",
-    "react-konva": "^17.0.2-3"
+    "react-konva": "^17.0.2-3",
+    "react-router-dom": "^6.11.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.21.5",

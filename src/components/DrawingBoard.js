@@ -26,7 +26,7 @@ import {
   Navbar,
   Row,
 } from "react-bootstrap";
-
+import { Navigate } from "react-router-dom";
 const initialState = {
   elements: [],
   undoStack: [],
@@ -333,7 +333,9 @@ export default function DrawingBoard() {
       dispatch({ type: "ADD_ELEMENT", payload: newCircle });
     }
   };
-
+  const handleClose = () => {
+    <Navigate  to="/" />
+  }
   return (
     <Container fluid>
       <Row>
@@ -441,9 +443,7 @@ export default function DrawingBoard() {
               </Nav.Item>
               <Nav.Item>
                 <Nav.Link
-                  onClick={() => {
-                    window.history.back();
-                  }}
+                  onClick={handleClose}
                 >
                   <CloseIcon />
                 </Nav.Link>
