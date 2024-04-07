@@ -1,39 +1,11 @@
 
 import * as React from "react";
 const CircleIcon = (props) => (
-  <svg
-    width="35px"
-    height="35px"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="#000000"
-    {...props}
-  >
-    <g id="SVGRepo_bgCarrier" strokeWidth={0} />
-    <g
-      id="SVGRepo_tracerCarrier"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <g id="SVGRepo_iconCarrier">
-      <title />
-      <g id="Complete">
-        <g id="Circle">
-          <circle
-            cx={12}
-            cy={12}
-            data-name="Circle"
-            fill="none"
-            id="Circle-2"
-            r={10}
-            stroke="#000000"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-          />
-        </g>
-      </g>
-    </g>
-  </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="28px" height="28px" viewBox="0 0 666.67 666.67">
+      <path d="M700,400c0,165.69-134.31,300-300,300S100,565.69,100,400,234.31,100,400,100,700,234.31,700,400Z"
+            transform="translate(-66.67 -66.67)" fill="none" stroke="#000" strokeLinecap="round"
+            strokeLinejoin="round" strokeWidth="66.67"/>
+    </svg>
+
 );
 export default CircleIcon;

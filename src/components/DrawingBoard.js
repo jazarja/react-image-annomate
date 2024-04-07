@@ -7,10 +7,9 @@
  */
 
 import React, {useReducer, useRef, useState} from "react";
-import {Circle, Ellipse, Image, Layer, Line, Rect, Stage, Text} from "react-konva";
-import {Button, Col, Dropdown, Input, Menu, Row, Space} from "antd";
-import {Navigate} from "react-router-dom";
-import {CircleIcon, CloseIcon, Download, Pencil, Redo, TextIcon, Undo,} from "../svg";
+import {Ellipse, Image, Layer, Line, Rect, Stage, Text} from "react-konva";
+import {Button, Col, ColorPicker, Dropdown, Input, Menu, Modal, Row, Space} from "antd";
+import {CircleIcon, RectangleIcon, Download, Pencil, Redo, TextIcon, Undo, UploadIcon, LineIcon} from "../svg";
 
 const initialState = {
     elements: [],
@@ -62,6 +61,8 @@ export default function DrawingBoard() {
     const [image, setImage] = useState(null);
     const stageRef = useRef(null);
     const layerRef = useRef();
+    const [textInputModalVisible, setTextInputModalVisible] = useState(false);
+    const [textInputValue, setTextInputValue] = useState('');
 
     const fontOptions = [
         "Arial",
@@ -94,7 +95,6 @@ export default function DrawingBoard() {
     const [lines, setLines] = useState([]);
 
     const handleFileChange = (event) => {
-        console.log("u=image");
         const url = URL.createObjectURL(event.target.files[0]);
         const img = new window.Image();
         img.src = url;
@@ -134,7 +134,19 @@ export default function DrawingBoard() {
 
     const handleMouseUp = () => {
         setIsDrawing(false);
-        if (selectedTool === "pen") {
+        if (selectedTool === "line") {
+            const newLine = (
+                <Line
+                    points={[lines[0], lines[1], lines[lines.length - 2], lines[lines.length - 1]]}
+                    stroke={color}
+                    strokeWidth={5}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                />
+            );
+            dispatch({type: "ADD_ELEMENT", payload: newLine});
+        } else if (selectedTool === "pen") {
             const newLine = (
                 <Line
                     points={lines}
@@ -174,10 +186,10 @@ export default function DrawingBoard() {
 
             const newCircle = (
                 <Rect
-                    x={finalLines[0] }
+                    x={finalLines[0]}
                     y={finalLines[1]}
                     width={(finalLines[finalLines.length - 2] - finalLines[0])}
-                    height={ (finalLines[finalLines.length - 1] - finalLines[1])}
+                    height={(finalLines[finalLines.length - 1] - finalLines[1])}
                     stroke={color}
                     strokeWidth={5}
                 />
@@ -187,50 +199,11 @@ export default function DrawingBoard() {
     };
     const handleImageClick = (event) => {
         const stage = stageRef.current;
-        let pointerPos = stage.getPointerPosition();
+        const point = stage.getPointerPosition();
         if (selectedTool === "text") {
-            const input = document.createElement("input");
-            input.type = "text";
-            input.style.position = "absolute";
-            input.style.top = `${pointerPos.y}px`;
-            input.style.left = `${pointerPos.x}px`;
-            input.style.fontFamily = selectedFont;
-            input.style.fontSize = {size};
-            input.style.color = {color};
-            input.style.textRendering = "optimizeLegibility";
-            input.style.zIndex = "9999999999999999999";
-            input.focus();
-            input.addEventListener("keydown", (e) => {
-                if (e.keyCode === 13 || event.key === "Enter") {
-                    const maxWidth = Math.min(
-                        pointerPos.x,
-                        stage.width() - pointerPos.x,
-                        pointerPos.y,
-                        stage.height() - pointerPos.y
-                    );
-                    const newText = (
-                        <Text
-                            x={pointerPos.x}
-                            y={pointerPos.y}
-                            text={input.value}
-                            fontSize={size}
-                            fill={color}
-                            fontFamily={selectedFont}
-                            width={maxWidth}
-                            wrap="wrap"
-                        />
-                    );
-                    dispatch({type: "ADD_ELEMENT", payload: newText});
-                    input.remove();
-                }
-            });
-            document.body.appendChild(input);
-            input.focus();
+            setLines([...lines, point.x, point.y]);
+            setTextInputModalVisible(true);
         }
-    };
-
-    const handleColorChange = (event) => {
-        setColor(event.target.value);
     };
 
     const handleSizeChange = (size) => {
@@ -280,7 +253,6 @@ export default function DrawingBoard() {
 
     const handleTouchEnd = (event) => {
         const stage = stageRef.current;
-        const pointerPos = stage.getPointerPosition();
         setIsDrawing(false);
         if (selectedTool === "pen") {
             const newLine = (
@@ -295,172 +267,201 @@ export default function DrawingBoard() {
             );
             dispatch({type: "ADD_ELEMENT", payload: newLine});
         } else if (selectedTool === "text") {
-            const input = document.createElement("input");
-            input.type = "text";
-            input.style.position = "absolute";
-            input.style.top = `${pointerPos.y}px`;
-            input.style.left = `${pointerPos.x}px`;
-            input.style.fontFamily = selectedFont;
-            input.style.fontSize = {size};
-            input.style.color = {color};
-            input.style.textRendering = "optimizeLegibility";
-            input.style.zIndex = "9999999999999999999";
-            input.focus();
-            input.addEventListener("keydown", (e) => {
-                if (e.keyCode === 13 || event.key === "Enter") {
-                    const maxWidth = Math.min(
-                        pointerPos.x,
-                        stage.width() - pointerPos.x,
-                        pointerPos.y,
-                        stage.height() - pointerPos.y
-                    );
-                    const newText = (
-                        <Text
-                            x={pointerPos.x}
-                            y={pointerPos.y}
-                            text={input.value}
-                            fontSize={size}
-                            fill={color}
-                            fontFamily={selectedFont}
-                            width={maxWidth}
-                            wrap="word" // specify the wrapping mode
-                        />
-                    );
-                    dispatch({type: "ADD_ELEMENT", payload: newText});
-                    input.remove();
-                }
-            });
-            document.body.appendChild(input);
-            input.focus();
+            setLines([...lines, point.x, point.y]);
+            setTextInputModalVisible(true);
         }
     };
-    const handleClose = () => {
-        <Navigate to="/"/>
+
+    const handleOk = () => {
+        const stage = stageRef.current;
+
+        const posX = lines[lines.length - 2];
+        const posY = lines[lines.length - 1];
+
+        const maxWidth = Math.min(
+            posX,
+            stage.width() - posX,
+            posY,
+            stage.height() - posY
+        );
+
+        const newText = (
+            <Text
+                x={posX}
+                y={posY}
+                text={textInputValue}
+                fontSize={size}
+                fill={color}
+                fontFamily={selectedFont}
+                width={maxWidth}
+                wrap="word" // specify the wrapping mode
+            />
+        );
+        dispatch({type: "ADD_ELEMENT", payload: newText});
+        setTextInputModalVisible(false);
     };
 
+    const handleCancel = () => {
+        setTextInputModalVisible(false);
+    };
+
+    const handleInputChange = (e) => {
+        setTextInputValue(e.target.value);
+    };
     return (
         <>
-            <Row>
-                <Col span={24}>
-                    <Space direction="horizontal" style={{display: 'flex', justifyContent: 'flex-end'}}>
-                        <label htmlFor="file-input" className="ant-btn">
-                            Select File
-                            <input
-                                id="file-input"
-                                type="file"
-                                accept="image/jpeg,image/jpg,image/png,image/webp,image/heif"
-                                onChange={handleFileChange}
-                                className="file-input"
-                                hidden
-                            />
-                        </label>
-
-                        <Dropdown overlay={
-                            <Menu>
-                                {fontOptions.map((font) => (
-                                    <Menu.Item
-                                        key={font}
-                                        onClick={() => handleFontSelect(font)}
-                                    >
-                                        {font}
-                                    </Menu.Item>
-                                ))}
-                            </Menu>
-                        }>
-                            <Button>{selectedFont}</Button>
-                        </Dropdown>
-
-                        <Dropdown overlay={
-                            <Menu>
-                                {fontSize.map((size) => (
-                                    <Menu.Item
-                                        key={size}
-                                        onClick={() => handleSizeChange(size)}
-                                    >
-                                        {size}
-                                    </Menu.Item>
-                                ))}
-                            </Menu>
-                        }>
-                            <Button>{size}</Button>
-                        </Dropdown>
-
-                        <Input
-                            type="color"
-                            value={color}
-                            onChange={handleColorChange}
-                            style={{margin: "15px", gap: "5px"}}
-                        />
-
-                        <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>}></Button>
-
-                        <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>}></Button>
-
-                        <Button onClick={() => handleToolSelect("rectangle")} icon={<CircleIcon/>}></Button>
-
-                        <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>}> </Button>
-
-                        <Button
-                            onClick={handleUndo}
-                            disabled={undoStack.length === 0}
-                            icon={<Undo/>}
-                        >
-
-                        </Button>
-
-                        <Button
-                            onClick={handleRedo}
-                            disabled={redoStack.length === 0}
-                            icon={<Redo/>}
-                        >
-
-                        </Button>
-
-                        <Button onClick={handleDownload} icon={<Download/>}></Button>
-
-                        <Button onClick={handleClose} icon={<CloseIcon/>}></Button>
-                    </Space>
-                </Col>
-            </Row>
-            <Row>
-                <Col span={24}>
-                    <div
+            {textInputModalVisible && (
+                <Modal
+                    title="Enter Text"
+                    visible={textInputModalVisible}
+                    onOk={handleOk}
+                    onCancel={handleCancel}
+                >
+                    <Input
+                        type="text"
+                        value={textInputValue}
+                        onChange={handleInputChange}
                         style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
+                            fontFamily: selectedFont,
+                            fontSize: size,
+                            color: color,
+                            textRendering: "optimizeLegibility",
+                            zIndex: 9999999999999999999,
                         }}
-                    >
-                        <Stage
-                            width={window.innerWidth - 400}
-                            height={window.innerHeight - 200}
-                            onClick={handleImageClick}
-                            ref={stageRef}
-                            onMouseDown={handleMouseDown}
-                            onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onTouchStart={handleTouchStart}
-                            onTouchMove={handleTouchMove}
-                            onTouchEnd={handleTouchEnd}
+                    />
+                </Modal>
+            )}
+
+            <Space direction="vertical" style={{display: 'flex', justifyContent: 'flex-end'}}>
+                <Row>
+                    <Col span={24}>
+                        <Space direction="horizontal" style={{display: 'flex', justifyContent: 'flex-end'}}>
+                            <label htmlFor="file-input" className="ant-btn">
+                                <UploadIcon/>
+                                <input
+                                    id="file-input"
+                                    type="file"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp,image/heif"
+                                    onChange={handleFileChange}
+                                    className="file-input"
+                                    hidden
+                                />
+                            </label>
+
+                            <Dropdown overlay={
+                                <Menu>
+                                    {fontOptions.map((font) => (
+                                        <Menu.Item
+                                            key={font}
+                                            onClick={() => handleFontSelect(font)}
+                                        >
+                                            {font}
+                                        </Menu.Item>
+                                    ))}
+                                </Menu>
+                            }>
+                                <Button>{selectedFont}</Button>
+                            </Dropdown>
+
+                            <Dropdown overlay={
+                                <Menu>
+                                    {fontSize.map((size) => (
+                                        <Menu.Item
+                                            key={size}
+                                            onClick={() => handleSizeChange(size)}
+                                        >
+                                            {size}
+                                        </Menu.Item>
+                                    ))}
+                                </Menu>
+                            }>
+                                <Button>{size}</Button>
+                            </Dropdown>
+
+                            <ColorPicker value={color}
+                                         size={"large"}
+                                         onChangeComplete={(color) => {
+                                             setColor(color.toHexString());
+                                         }}/>
+
+                            <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>} size={"large"}
+                                    type={selectedTool === "text" ? "primary" : "default"}></Button>
+
+                            <Button onClick={() => handleToolSelect("line")} icon={<LineIcon/>} size={"large"}
+                                    type={selectedTool === "line" ? "primary" : "default"}></Button>
+
+                            <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>} size={"large"}
+                                    type={selectedTool === "circle" ? "primary" : "default"}></Button>
+
+                            <Button onClick={() => handleToolSelect("rectangle")} icon={<RectangleIcon/>}
+                                    type={selectedTool === "rectangle" ? "primary" : "default"}
+                                    size={"large"}></Button>
+
+                            <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>} size={"large"}
+                                    type={selectedTool === "pen" ? "primary" : "default"}></Button>
+
+                            <Button
+                                onClick={handleUndo}
+                                disabled={undoStack.length === 0}
+                                icon={<Undo/>}
+                                size={"large"}
+                            >
+
+                            </Button>
+
+                            <Button
+                                onClick={handleRedo}
+                                disabled={redoStack.length === 0}
+                                icon={<Redo/>}
+                                size={"large"}
+                            >
+
+                            </Button>
+
+                            <Button onClick={handleDownload} icon={<Download/>} size={"large"}></Button>
+                        </Space>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col span={24}>
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                            }}
                         >
-                            <Layer ref={layerRef}>
-                                {image && (
-                                    <Image
-                                        image={image}
-                                        width={window.innerWidth - 400}
-                                        height={window.innerHeight - 200}
-                                        style={{objectFit: "fill"}}
-                                    />
-                                )}
-                                {/* <Image/> */}
-                                {elements.map((element, index) => (
-                                    <React.Fragment key={index}>{element}</React.Fragment>
-                                ))}
-                            </Layer>
-                        </Stage>
-                    </div>
-                </Col>
-            </Row>
+                            <Stage
+                                width={window.innerWidth - 400}
+                                height={window.innerHeight - 200}
+                                onClick={handleImageClick}
+                                ref={stageRef}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUp}
+                                onTouchStart={handleTouchStart}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                            >
+                                <Layer ref={layerRef}>
+                                    {image && (
+                                        <Image
+                                            image={image}
+                                            width={window.innerWidth - 400}
+                                            height={window.innerHeight - 200}
+                                            style={{objectFit: "fill"}}
+                                        />
+                                    )}
+                                    {/* <Image/> */}
+                                    {elements.map((element, index) => (
+                                        <React.Fragment key={index}>{element}</React.Fragment>
+                                    ))}
+                                </Layer>
+                            </Stage>
+                        </div>
+                    </Col>
+                </Row>
+            </Space>
         </>
     );
 }

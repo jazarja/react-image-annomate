@@ -5,13 +5,19 @@ import Undo from "./undo";
 import CircleIcon from "./circle";
 import CloseIcon from "./closeIcon";
 import Pencil from "./pencil"
+import RectangleIcon from "./rectangle"
+import UploadIcon from "./upload";
+import LineIcon from "./line";
 
 export {
-  Download,
-  TextIcon,
-  Undo,
-  Redo,
-  CircleIcon,
-  CloseIcon,
-  Pencil
+    Download,
+    TextIcon,
+    Undo,
+    Redo,
+    RectangleIcon,
+    UploadIcon,
+    CircleIcon,
+    CloseIcon,
+    Pencil,
+    LineIcon
 };
