@@ -62,7 +62,23 @@ function reducer(state, action) {
     }
 }
 
-export default function DrawingBoard(props) {
+type DrawingBoardProps = {
+    width: number,
+    height: number,
+    canDownload?: boolean,
+    canCopyToClipboard?: boolean,
+    canUpload?: boolean,
+    image?: string
+}
+
+const defaultProps = {
+    canDownload: true,
+    canCopyToClipboard: true,
+    canUpload: true,
+    image: undefined
+};
+
+export default function DrawingBoard(props: DrawingBoardProps) {
     const {width, height, canDownload, canCopyToClipboard, canUpload, image: imageBase64} = props;
     const [selectedTool, setSelectedTool] = useState(null);
     const [{elements, undoStack, redoStack}, dispatch] = useReducer(
@@ -530,7 +546,7 @@ export default function DrawingBoard(props) {
             <Space direction="vertical" style={{display: 'flex', justifyContent: 'flex-end'}}>
 
                 <Space direction="horizontal" style={{display: 'flex', justifyContent: 'center'}}>
-                    <span>{stageWidth + "x" + stageHeight + " == " + imageWidth + " " + imageHeight + " " + zoom}</span>
+
                     {canUpload &&
                         <label htmlFor="file-input" className="ant-btn">
                             <UploadIcon/>
@@ -693,3 +709,4 @@ export default function DrawingBoard(props) {
         </div>
     );
 }
+DrawingBoard.defaultProps = defaultProps;
