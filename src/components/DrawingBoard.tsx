@@ -1,13 +1,10 @@
 /**
- * © 2023 Amrutham Suresh Kumar. All rights reserved.
- This work is © 2023 Amrutham Suresh Kumar  and is licensed under MIT license.
- All code contained within this work is the property of Amrutham Suresh Kumar.
- Unauthorized copying, distribution or use of this code, whether in part or in whole, is strictly prohibited without express written permission from Amrutham Suresh Kumar.
- Any unauthorized use may result in legal action.
+ * Original code based from https://github.com/suresh2291/react-image-annomate
  */
 
 import React, {useReducer, useRef, useState, useEffect} from "react";
 import {Ellipse, Image, Layer, Line, Rect, Stage, Text, Arrow} from "react-konva";
+import Konva from "konva";
 import {Button, ColorPicker, Dropdown, Input, Modal, Space, Tooltip} from "antd";
 import {
     CircleIcon,
@@ -74,8 +71,8 @@ export default function DrawingBoard(props) {
     );
     const [color, setColor] = useState("#FF0000");
     const [image, setImage] = useState(null);
-    const stageRef = useRef(null);
-    const layerRef = useRef();
+    const stageRef = useRef<Konva.Stage>(null);
+    const layerRef = useRef<Konva.Layer>();
     const [textInputModalVisible, setTextInputModalVisible] = useState(false);
     const [textInputValue, setTextInputValue] = useState('');
     const [previewElement, setPreviewElement] = useState(null);
@@ -370,10 +367,8 @@ export default function DrawingBoard(props) {
                 <Ellipse
                     x={finalLines[0] + radiusX}
                     y={finalLines[1] + radiusY}
-                    radius={{
-                        x: radiusX,
-                        y: radiusY
-                    }}
+                    radiusX={radiusX}
+                    radiusY={radiusY}
                     stroke={color}
                     strokeWidth={5}
                 />

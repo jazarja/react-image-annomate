@@ -5,8 +5,9 @@
   "main": "dist/components/DrawingBoard.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pnpm run clean && pnpm run compile",
+    "clean": "rimraf ./dist && rimraf ./tsconfig.tsbuildinfo",
     "compile": "npx tsc",
-    "build": "babel src -d dist",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -33,10 +34,10 @@
     "@ant-design/icons": "^5.3.6",
     "antd": "^5.16.1",
     "copy-image-clipboard": "^2.1.2",
-    "konva": "^8.4.3",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-konva": "^17.0.2-3",
+    "konva": "^9.3.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-konva": "^18.2.10",
     "react-router-dom": "^6.11.1"
   },
   "devDependencies": {

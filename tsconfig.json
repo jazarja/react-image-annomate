@@ -9,7 +9,8 @@
       "react": [
         "node_modules/@types/react"
       ]
-    }
+    },
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*"
