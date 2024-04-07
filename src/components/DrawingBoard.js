@@ -7,8 +7,8 @@
  */
 
 import React, {useReducer, useRef, useState, useEffect} from "react";
-import {Ellipse, Image, Layer, Line, Rect, Stage, Text} from "react-konva";
-import {Button, Col, ColorPicker, Dropdown, Input, Menu, Modal, Row, Space} from "antd";
+import {Ellipse, Image, Layer, Line, Rect, Stage, Text, Arrow} from "react-konva";
+import {Button, ColorPicker, Dropdown, Input, Modal, Space, Tooltip} from "antd";
 import {
     CircleIcon,
     RectangleIcon,
@@ -19,7 +19,7 @@ import {
     Undo,
     UploadIcon,
     LineIcon,
-    CopyIcon
+    CopyIcon, ArrowIcon
 } from "../svg";
 import {
     copyBlobToClipboard,
@@ -66,7 +66,7 @@ function reducer(state, action) {
 }
 
 export default function DrawingBoard(props) {
-    const { width, height, canDownload, canCopyToClipboard, canUpload, image: imageBase64   } = props;
+    const {width, height, canDownload, canCopyToClipboard, canUpload, image: imageBase64} = props;
     const [selectedTool, setSelectedTool] = useState(null);
     const [{elements, undoStack, redoStack}, dispatch] = useReducer(
         reducer,
@@ -142,7 +142,7 @@ export default function DrawingBoard(props) {
             if (containerRef.current) {
                 const container = containerRef.current.getBoundingClientRect();
                 setStageWidth(Math.max(container.width, width));
-                setStageHeight(Math.max(container.height,height));
+                setStageHeight(Math.max(container.height, height));
             }
         };
 
@@ -198,22 +198,26 @@ export default function DrawingBoard(props) {
 
 
     const handleDownload = () => {
-        const url = layerRef.current.toCanvas();
-        url.toBlob(async (blob) => {
-            const link = document.createElement("a");
-            link.download = `annotate_${new Date().getTime()}`;
-            link.href = URL.createObjectURL(blob);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
+        if (layerRef.current) {
+            const url = layerRef.current.toCanvas();
+            url.toBlob(async (blob) => {
+                const link = document.createElement("a");
+                link.download = `annotate_${new Date().getTime()}`;
+                link.href = URL.createObjectURL(blob);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
     };
 
     const handleCopyToClipboard = () => {
-        const url = layerRef.current.toCanvas();
-        url.toBlob(async (blob) => {
-            return copyBlobToClipboard(blob);
-        });
+        if (layerRef.current) {
+            const url = layerRef.current.toCanvas();
+            url.toBlob(async (blob) => {
+                return copyBlobToClipboard(blob);
+            });
+        }
     };
 
     const handleToolSelect = (tool) => {
@@ -289,6 +293,15 @@ export default function DrawingBoard(props) {
                     />
                 );
                 break;
+            case 'arrow':
+                previewShape = (
+                    <Arrow
+                        points={[startX, startY, currentX, currentY]}
+                        stroke={color}
+                        strokeWidth={2}
+                    />
+                );
+                break;
             case 'pen':
                 previewShape = (
                     <Line
@@ -310,7 +323,19 @@ export default function DrawingBoard(props) {
 
     const handleMouseUp = () => {
         setIsDrawing(false);
-        if (selectedTool === "line") {
+        if (selectedTool === "arrow") {
+            const newLine = (
+                <Arrow
+                    points={[path[0], path[1], path[path.length - 2], path[path.length - 1]]}
+                    stroke={color}
+                    strokeWidth={5}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                />
+            );
+            dispatch({type: "ADD_ELEMENT", payload: newLine});
+        } else if (selectedTool === "line") {
             const newLine = (
                 <Line
                     points={[path[0], path[1], path[path.length - 2], path[path.length - 1]]}
@@ -425,7 +450,6 @@ export default function DrawingBoard(props) {
     };
 
     const handleTouchEnd = (event) => {
-        const stage = stageRef.current;
         setIsDrawing(false);
         if (selectedTool === "pen") {
             const newLine = (
@@ -440,6 +464,7 @@ export default function DrawingBoard(props) {
             );
             dispatch({type: "ADD_ELEMENT", payload: newLine});
         } else if (selectedTool === "text") {
+            const point = getCurrentPosition();
             setPath([...path, point.x, point.y]);
             setTextInputModalVisible(true);
         }
@@ -510,8 +535,8 @@ export default function DrawingBoard(props) {
             <Space direction="vertical" style={{display: 'flex', justifyContent: 'flex-end'}}>
 
                 <Space direction="horizontal" style={{display: 'flex', justifyContent: 'center'}}>
-                    <span>{stageWidth+"x"+stageHeight+" == "+imageWidth + " " + imageHeight+" "+zoom}</span>
-                    { canUpload &&
+                    <span>{stageWidth + "x" + stageHeight + " == " + imageWidth + " " + imageHeight + " " + zoom}</span>
+                    {canUpload &&
                         <label htmlFor="file-input" className="ant-btn">
                             <UploadIcon/>
                             <input
@@ -555,45 +580,67 @@ export default function DrawingBoard(props) {
                                      setColor(color.toHexString());
                                  }}/>
 
-                    <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>} size={"large"}
-                            type={selectedTool === "text" ? "primary" : "default"}></Button>
+                    <Tooltip title="Insert a text" placement="bottom">
+                        <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>} size={"large"}
+                                type={selectedTool === "text" ? "primary" : "default"}></Button>
+                    </Tooltip>
 
-                    <Button onClick={() => handleToolSelect("line")} icon={<LineIcon/>} size={"large"}
-                            type={selectedTool === "line" ? "primary" : "default"}></Button>
+                    <Tooltip title="Draw line" placement="bottom">
+                        <Button onClick={() => handleToolSelect("line")} icon={<LineIcon/>} size={"large"}
+                                type={selectedTool === "line" ? "primary" : "default"}></Button>
+                    </Tooltip>
 
-                    <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>} size={"large"}
-                            type={selectedTool === "circle" ? "primary" : "default"}></Button>
+                    <Tooltip title="Draw arrow" placement="bottom">
+                        <Button onClick={() => handleToolSelect("arrow")} icon={<ArrowIcon/>} size={"large"}
+                                type={selectedTool === "arrow" ? "primary" : "default"}></Button>
+                    </Tooltip>
 
-                    <Button onClick={() => handleToolSelect("rectangle")} icon={<RectangleIcon/>}
-                            type={selectedTool === "rectangle" ? "primary" : "default"}
-                            size={"large"}></Button>
+                    <Tooltip title="Draw circle" placement="bottom">
+                        <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>} size={"large"}
+                                type={selectedTool === "circle" ? "primary" : "default"}></Button>
+                    </Tooltip>
 
-                    <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>} size={"large"}
-                            type={selectedTool === "pen" ? "primary" : "default"}></Button>
+                    <Tooltip title="Draw rectangle" placement="bottom">
+                        <Button onClick={() => handleToolSelect("rectangle")} icon={<RectangleIcon/>}
+                                type={selectedTool === "rectangle" ? "primary" : "default"}
+                                size={"large"}></Button>
+                    </Tooltip>
 
-                    <Button
-                        onClick={handleUndo}
-                        disabled={undoStack.length === 0}
-                        icon={<Undo/>}
-                        size={"large"}
-                    >
+                    <Tooltip title="Draw freehand" placement="bottom">
+                        <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>} size={"large"}
+                                type={selectedTool === "pen" ? "primary" : "default"}></Button>
+                    </Tooltip>
 
-                    </Button>
+                    <Tooltip title="Undo" placement="bottom">
+                        <Button
+                            onClick={handleUndo}
+                            disabled={undoStack.length === 0}
+                            icon={<Undo/>}
+                            size={"large"}
+                        ></Button>
+                    </Tooltip>
 
-                    <Button
-                        onClick={handleRedo}
-                        disabled={redoStack.length === 0}
-                        icon={<Redo/>}
-                        size={"large"}
-                    >
 
-                    </Button>
+                    <Tooltip title="Redo" placement="bottom">
+                        <Button
+                            onClick={handleRedo}
+                            disabled={redoStack.length === 0}
+                            icon={<Redo/>}
+                            size={"large"}
+                        >
 
-                    { canDownload &&
-                        <Button onClick={handleDownload} icon={<Download/>} size={"large"}></Button>
+                        </Button>
+                    </Tooltip>
+
+                    {canDownload &&
+                        <Tooltip title="Download image" placement="bottom">
+                            <Button onClick={handleDownload} icon={<Download/>} size={"large"}></Button>
+                        </Tooltip>
                     }
-                    { canCopyToClipboard &&
-                        <Button onClick={handleCopyToClipboard} icon={<CopyIcon/>} size={"large"}></Button>
+                    {canCopyToClipboard &&
+                        <Tooltip title="Copy image to clipboard" placement="bottom">
+                            <Button onClick={handleCopyToClipboard} icon={<CopyIcon/>} size={"large"}></Button>
+                        </Tooltip>
                     }
                 </Space>
 
@@ -605,7 +652,13 @@ export default function DrawingBoard(props) {
                         alignItems: "center",
                     }}
                 >
-                    <div ref={containerRef} style={{width: '100%', height: '100%', border: '1px solid black', backgroundColor: 'gray', padding: '0'}}>
+                    <div ref={containerRef} style={{
+                        width: '100%',
+                        height: '100%',
+                        border: '1px solid black',
+                        backgroundColor: 'gray',
+                        padding: '0'
+                    }}>
                         <Stage
                             scaleX={zoom}
                             scaleY={zoom}
@@ -623,8 +676,8 @@ export default function DrawingBoard(props) {
                             <Layer ref={layerRef}>
                                 {image && (
                                     <Image
-                                        x={(stageWidth-Math.min(imageWidth, window.innerWidth / 2))/2}
-                                        y={(stageHeight-Math.min(imageHeight, window.innerHeight / 2))/2}
+                                        x={(stageWidth - Math.min(imageWidth, window.innerWidth / 2)) / 2}
+                                        y={(stageHeight - Math.min(imageHeight, window.innerHeight / 2)) / 2}
                                         image={image}
                                         width={Math.min(imageWidth, window.innerWidth / 2)}
                                         height={Math.min(imageHeight, window.innerHeight / 2)}

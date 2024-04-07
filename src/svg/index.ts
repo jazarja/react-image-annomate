@@ -9,6 +9,7 @@ import RectangleIcon from "./rectangle"
 import UploadIcon from "./upload";
 import LineIcon from "./line";
 import CopyIcon from "./copy";
+import ArrowIcon from "./arrow";
 
 export {
     Download,
@@ -21,5 +22,6 @@ export {
     CloseIcon,
     Pencil,
     LineIcon,
+    ArrowIcon,
     CopyIcon
 };
