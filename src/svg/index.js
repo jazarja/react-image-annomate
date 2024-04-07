@@ -8,6 +8,7 @@ import Pencil from "./pencil"
 import RectangleIcon from "./rectangle"
 import UploadIcon from "./upload";
 import LineIcon from "./line";
+import CopyIcon from "./copy";
 
 export {
     Download,
@@ -19,5 +20,6 @@ export {
     CircleIcon,
     CloseIcon,
     Pencil,
-    LineIcon
+    LineIcon,
+    CopyIcon
 };

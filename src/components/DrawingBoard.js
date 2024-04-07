@@ -9,7 +9,21 @@
 import React, {useReducer, useRef, useState, useEffect} from "react";
 import {Ellipse, Image, Layer, Line, Rect, Stage, Text} from "react-konva";
 import {Button, Col, ColorPicker, Dropdown, Input, Menu, Modal, Row, Space} from "antd";
-import {CircleIcon, RectangleIcon, Download, Pencil, Redo, TextIcon, Undo, UploadIcon, LineIcon} from "../svg";
+import {
+    CircleIcon,
+    RectangleIcon,
+    Download,
+    Pencil,
+    Redo,
+    TextIcon,
+    Undo,
+    UploadIcon,
+    LineIcon,
+    CopyIcon
+} from "../svg";
+import {
+    copyBlobToClipboard,
+} from 'copy-image-clipboard'
 
 const initialState = {
     elements: [],
@@ -51,19 +65,23 @@ function reducer(state, action) {
     }
 }
 
-export default function DrawingBoard() {
+export default function DrawingBoard(props) {
+    const { width, height, canDownload, canCopyToClipboard, canUpload, image: imageBase64   } = props;
     const [selectedTool, setSelectedTool] = useState(null);
     const [{elements, undoStack, redoStack}, dispatch] = useReducer(
         reducer,
         initialState
     );
-    const [color, setColor] = useState("#000000");
+    const [color, setColor] = useState("#FF0000");
     const [image, setImage] = useState(null);
     const stageRef = useRef(null);
     const layerRef = useRef();
     const [textInputModalVisible, setTextInputModalVisible] = useState(false);
     const [textInputValue, setTextInputValue] = useState('');
     const [previewElement, setPreviewElement] = useState(null);
+    const [stageWidth, setStageWidth] = useState(0);
+    const [stageHeight, setStageHeight] = useState(0);
+    const containerRef = useRef(null);
 
     const fontOptions = [
         "Arial",
@@ -99,6 +117,44 @@ export default function DrawingBoard() {
     const [zoom, setZoom] = useState(1);
 
     useEffect(() => {
+        console.log("imageBase64", imageBase64);
+
+        const loadImage = () => {
+            console.log("Loading");
+            const img = new window.Image();
+            img.src = imageBase64;
+            img.onload = () => {
+                const imageWidth = img.width
+                const imageHeight = img.height;
+                setImageWidth(imageWidth);
+                setImageHeight(imageHeight);
+                setImage(img);
+            };
+        };
+
+        if (imageBase64) {
+            loadImage();
+        }
+    }, [imageBase64]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (containerRef.current) {
+                const container = containerRef.current.getBoundingClientRect();
+                setStageWidth(Math.max(container.width, width));
+                setStageHeight(Math.max(container.height,height));
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial calculation
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
+    useEffect(() => {
         setPath([]);
     }, [selectedTool]);
 
@@ -115,14 +171,31 @@ export default function DrawingBoard() {
         const img = new window.Image();
         img.src = url;
         img.onload = () => {
+            const componentRect = stageRef.current.getStage().container().getBoundingClientRect();
+            const imageWidth = img.width
+            const imageHeight = img.height;
+            const stageWidth = componentRect.right - componentRect.left;
+            const stageHeight = componentRect.bottom - componentRect.top;
+
+            setImageWidth(imageWidth);
+            setImageHeight(imageHeight);
+
+            const zoomWidth = imageWidth > stageWidth ? stageWidth / imageWidth : 1;
+            const zoomHeight = imageHeight > stageHeight ? stageHeight / imageHeight : 1;
+
+            const zoom = Math.min(zoomWidth, zoomHeight);
+
+            // if (zoom < 1) {
+            //     setZoom(zoom);
+            // } else
+            // {
+            //     setZoom(1);
+            // }
+
             setImage(img);
         };
     };
 
-    const handleImageLoad = (event) => {
-        setImageWidth(event.target.width);
-        setImageHeight(event.target.height);
-    };
 
     const handleDownload = () => {
         const url = layerRef.current.toCanvas();
@@ -133,6 +206,13 @@ export default function DrawingBoard() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        });
+    };
+
+    const handleCopyToClipboard = () => {
+        const url = layerRef.current.toCanvas();
+        url.toBlob(async (blob) => {
+            return copyBlobToClipboard(blob);
         });
     };
 
@@ -229,8 +309,6 @@ export default function DrawingBoard() {
     };
 
     const handleMouseUp = () => {
-        console.log(getCurrentPosition());
-
         setIsDrawing(false);
         if (selectedTool === "line") {
             const newLine = (
@@ -406,7 +484,7 @@ export default function DrawingBoard() {
         setTextInputValue(e.target.value);
     };
     return (
-        <>
+        <div style={{border: '1px solid black', backgroundColor: 'darkgray', padding: '0'}}>
             {textInputModalVisible && (
                 <Modal
                     title="Enter Text"
@@ -430,135 +508,140 @@ export default function DrawingBoard() {
             )}
 
             <Space direction="vertical" style={{display: 'flex', justifyContent: 'flex-end'}}>
-                <Row>
-                    <Col span={24}>
-                        <Space direction="horizontal" style={{display: 'flex', justifyContent: 'flex-end'}}>
-                            <label htmlFor="file-input" className="ant-btn">
-                                <UploadIcon/>
-                                <input
-                                    id="file-input"
-                                    type="file"
-                                    accept="image/jpeg,image/jpg,image/png,image/webp,image/heif"
-                                    onChange={handleFileChange}
-                                    className="file-input"
-                                    hidden
-                                />
-                            </label>
 
-                            <Dropdown
-                                menu={{
-                                    items: fontOptions.map((font) => ({
-                                        key: font,
-                                        label: font,
-                                        onClick: () => handleFontSelect(font),
-                                    })),
-                                }}
-                            >
-                                <Button>{selectedFont}</Button>
-                            </Dropdown>
+                <Space direction="horizontal" style={{display: 'flex', justifyContent: 'center'}}>
+                    <span>{stageWidth+"x"+stageHeight+" == "+imageWidth + " " + imageHeight+" "+zoom}</span>
+                    { canUpload &&
+                        <label htmlFor="file-input" className="ant-btn">
+                            <UploadIcon/>
+                            <input
+                                id="file-input"
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp,image/heif"
+                                onChange={handleFileChange}
+                                className="file-input"
+                                hidden
+                            />
+                        </label>
+                    }
 
-                            <Dropdown
-                                menu={{
-                                    items: fontSize.map((size) => ({
-                                        key: size,
-                                        label: size,
-                                        onClick: () => handleSizeChange(size),
-                                    })),
-                                }}
-                            >
-                                <Button>{size}</Button>
-                            </Dropdown>
+                    <Dropdown
+                        menu={{
+                            items: fontOptions.map((font) => ({
+                                key: font,
+                                label: font,
+                                onClick: () => handleFontSelect(font),
+                            })),
+                        }}
+                    >
+                        <Button>{selectedFont}</Button>
+                    </Dropdown>
 
-                            <ColorPicker value={color}
-                                         size={"large"}
-                                         onChangeComplete={(color) => {
-                                             setColor(color.toHexString());
-                                         }}/>
+                    <Dropdown
+                        menu={{
+                            items: fontSize.map((size) => ({
+                                key: size,
+                                label: size,
+                                onClick: () => handleSizeChange(size),
+                            })),
+                        }}
+                    >
+                        <Button>{size}</Button>
+                    </Dropdown>
 
-                            <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>} size={"large"}
-                                    type={selectedTool === "text" ? "primary" : "default"}></Button>
+                    <ColorPicker value={color}
+                                 size={"large"}
+                                 onChangeComplete={(color) => {
+                                     setColor(color.toHexString());
+                                 }}/>
 
-                            <Button onClick={() => handleToolSelect("line")} icon={<LineIcon/>} size={"large"}
-                                    type={selectedTool === "line" ? "primary" : "default"}></Button>
+                    <Button onClick={() => handleToolSelect("text")} icon={<TextIcon/>} size={"large"}
+                            type={selectedTool === "text" ? "primary" : "default"}></Button>
 
-                            <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>} size={"large"}
-                                    type={selectedTool === "circle" ? "primary" : "default"}></Button>
+                    <Button onClick={() => handleToolSelect("line")} icon={<LineIcon/>} size={"large"}
+                            type={selectedTool === "line" ? "primary" : "default"}></Button>
 
-                            <Button onClick={() => handleToolSelect("rectangle")} icon={<RectangleIcon/>}
-                                    type={selectedTool === "rectangle" ? "primary" : "default"}
-                                    size={"large"}></Button>
+                    <Button onClick={() => handleToolSelect("circle")} icon={<CircleIcon/>} size={"large"}
+                            type={selectedTool === "circle" ? "primary" : "default"}></Button>
 
-                            <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>} size={"large"}
-                                    type={selectedTool === "pen" ? "primary" : "default"}></Button>
+                    <Button onClick={() => handleToolSelect("rectangle")} icon={<RectangleIcon/>}
+                            type={selectedTool === "rectangle" ? "primary" : "default"}
+                            size={"large"}></Button>
 
-                            <Button
-                                onClick={handleUndo}
-                                disabled={undoStack.length === 0}
-                                icon={<Undo/>}
-                                size={"large"}
-                            >
+                    <Button onClick={() => handleToolSelect("pen")} icon={<Pencil/>} size={"large"}
+                            type={selectedTool === "pen" ? "primary" : "default"}></Button>
 
-                            </Button>
+                    <Button
+                        onClick={handleUndo}
+                        disabled={undoStack.length === 0}
+                        icon={<Undo/>}
+                        size={"large"}
+                    >
 
-                            <Button
-                                onClick={handleRedo}
-                                disabled={redoStack.length === 0}
-                                icon={<Redo/>}
-                                size={"large"}
-                            >
+                    </Button>
 
-                            </Button>
+                    <Button
+                        onClick={handleRedo}
+                        disabled={redoStack.length === 0}
+                        icon={<Redo/>}
+                        size={"large"}
+                    >
 
-                            <Button onClick={handleDownload} icon={<Download/>} size={"large"}></Button>
-                        </Space>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col span={24}>
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                            }}
+                    </Button>
+
+                    { canDownload &&
+                        <Button onClick={handleDownload} icon={<Download/>} size={"large"}></Button>
+                    }
+                    { canCopyToClipboard &&
+                        <Button onClick={handleCopyToClipboard} icon={<CopyIcon/>} size={"large"}></Button>
+                    }
+                </Space>
+
+
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                >
+                    <div ref={containerRef} style={{width: '100%', height: '100%', border: '1px solid black', backgroundColor: 'gray', padding: '0'}}>
+                        <Stage
+                            scaleX={zoom}
+                            scaleY={zoom}
+                            width={stageWidth}
+                            height={stageHeight}
+                            onClick={handleImageClick}
+                            ref={stageRef}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
                         >
-                            <div style={{border: '1px solid black', padding: '0'}}>
-                                <Stage
-                                    scaleX={zoom}
-                                    scaleY={zoom}
-                                    width={window.innerWidth - 400}
-                                    height={window.innerHeight - 200}
-                                    onClick={handleImageClick}
-                                    ref={stageRef}
-                                    onMouseDown={handleMouseDown}
-                                    onMouseMove={handleMouseMove}
-                                    onMouseUp={handleMouseUp}
-                                    onTouchStart={handleTouchStart}
-                                    onTouchMove={handleTouchMove}
-                                    onTouchEnd={handleTouchEnd}
-                                >
-                                    <Layer ref={layerRef}>
-                                        {image && (
-                                            <Image
-                                                onLoad={handleImageLoad}
-                                                image={image}
-                                                width={window.innerWidth - 400}
-                                                height={window.innerHeight - 200}
-                                                style={{objectFit: "fill"}}
-                                            />
-                                        )}
-                                        {/* <Image/> */}
-                                        {previewElement}
-                                        {elements.map((element, index) => (
-                                            <React.Fragment key={index}>{element}</React.Fragment>
-                                        ))}
-                                    </Layer>
-                                </Stage>
-                            </div>
-                        </div>
-                    </Col>
-                </Row>
+                            <Layer ref={layerRef}>
+                                {image && (
+                                    <Image
+                                        x={(stageWidth-Math.min(imageWidth, window.innerWidth / 2))/2}
+                                        y={(stageHeight-Math.min(imageHeight, window.innerHeight / 2))/2}
+                                        image={image}
+                                        width={Math.min(imageWidth, window.innerWidth / 2)}
+                                        height={Math.min(imageHeight, window.innerHeight / 2)}
+                                        style={{objectFit: "fill"}}
+                                    />
+                                )}
+                                {/* <Image/> */}
+                                {previewElement}
+                                {elements.map((element, index) => (
+                                    <React.Fragment key={index}>{element}</React.Fragment>
+                                ))}
+                            </Layer>
+                        </Stage>
+                    </div>
+                </div>
+
             </Space>
-        </>
+        </div>
     );
 }
