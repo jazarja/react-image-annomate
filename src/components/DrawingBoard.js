@@ -6,7 +6,7 @@
  Any unauthorized use may result in legal action.
  */
 
-import React, {useReducer, useRef, useState} from "react";
+import React, {useReducer, useRef, useState, useEffect} from "react";
 import {Ellipse, Image, Layer, Line, Rect, Stage, Text} from "react-konva";
 import {Button, Col, ColorPicker, Dropdown, Input, Menu, Modal, Row, Space} from "antd";
 import {CircleIcon, RectangleIcon, Download, Pencil, Redo, TextIcon, Undo, UploadIcon, LineIcon} from "../svg";
@@ -63,6 +63,7 @@ export default function DrawingBoard() {
     const layerRef = useRef();
     const [textInputModalVisible, setTextInputModalVisible] = useState(false);
     const [textInputValue, setTextInputValue] = useState('');
+    const [previewElement, setPreviewElement] = useState(null);
 
     const fontOptions = [
         "Arial",
@@ -92,7 +93,22 @@ export default function DrawingBoard() {
     const [size, setSize] = useState(fontSize[0]);
     const [selectedFont, setSelectedFont] = useState(fontOptions[0]);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [lines, setLines] = useState([]);
+    const [path, setPath] = useState([]);
+    const [imageWidth, setImageWidth] = useState(0);
+    const [imageHeight, setImageHeight] = useState(0);
+    const [zoom, setZoom] = useState(1);
+
+    useEffect(() => {
+        setPath([]);
+    }, [selectedTool]);
+
+    const handleZoomIn = () => {
+        setZoom(zoom + 0.1);
+    };
+
+    const handleZoomOut = () => {
+        setZoom(zoom - 0.1);
+    };
 
     const handleFileChange = (event) => {
         const url = URL.createObjectURL(event.target.files[0]);
@@ -101,6 +117,11 @@ export default function DrawingBoard() {
         img.onload = () => {
             setImage(img);
         };
+    };
+
+    const handleImageLoad = (event) => {
+        setImageWidth(event.target.width);
+        setImageHeight(event.target.height);
     };
 
     const handleDownload = () => {
@@ -120,24 +141,101 @@ export default function DrawingBoard() {
     };
     const handleMouseDown = () => {
         setIsDrawing(true);
-        setLines([]);
+        setPath([]);
     };
+
+    const getCurrentPosition = () => {
+        const stage = stageRef.current;
+        const point = stage.getPointerPosition();
+
+        const componentRect = stageRef.current.getStage().container().getBoundingClientRect();
+
+        const clampedX = Math.max(0, Math.min(point.x, componentRect.right - componentRect.left));
+        const clampedY = Math.max(0, Math.min(point.y, componentRect.bottom - componentRect.top));
+        return {x: clampedX, y: clampedY};
+    }
 
     const handleMouseMove = (event) => {
         if (!isDrawing) {
+            setPreviewElement(null);
             return;
         }
-        const stage = stageRef.current;
-        const point = stage.getPointerPosition();
-        setLines([...lines, point.x, point.y]);
+
+        const currentPosition = getCurrentPosition();
+        setPath([...path, currentPosition.x, currentPosition.y]);
+
+        const startX = path[0];
+        const startY = path[1];
+
+        const currentX = currentPosition.x;
+        const currentY = currentPosition.y;
+
+        const width = currentX - startX;
+        const height = currentY - startY;
+
+        let previewShape;
+
+        switch (selectedTool) {
+            case 'circle':
+                previewShape = (
+                    <Ellipse
+                        x={startX + (Math.abs(width) / 2)}
+                        y={startY + (Math.abs(height) / 2)}
+                        radiusX={Math.abs(width) / 2}
+                        radiusY={Math.abs(height) / 2}
+                        stroke={color}
+                        strokeWidth={2}
+                    />
+                );
+                break;
+            case 'rectangle':
+                previewShape = (
+                    <Rect
+                        x={Math.min(startX, currentX)}
+                        y={Math.min(startY, currentY)}
+                        width={Math.abs(width)}
+                        height={Math.abs(height)}
+                        stroke={color}
+                        strokeWidth={2}
+                    />
+                );
+                break;
+            case 'line':
+                previewShape = (
+                    <Line
+                        points={[startX, startY, currentX, currentY]}
+                        stroke={color}
+                        strokeWidth={2}
+                    />
+                );
+                break;
+            case 'pen':
+                previewShape = (
+                    <Line
+                        points={path}
+                        stroke={color}
+                        strokeWidth={2}
+                        tension={0.5}
+                        lineCap="round"
+                        lineJoin="round"
+                    />
+                );
+                break;
+            default:
+                break;
+        }
+
+        setPreviewElement(previewShape);
     };
 
     const handleMouseUp = () => {
+        console.log(getCurrentPosition());
+
         setIsDrawing(false);
         if (selectedTool === "line") {
             const newLine = (
                 <Line
-                    points={[lines[0], lines[1], lines[lines.length - 2], lines[lines.length - 1]]}
+                    points={[path[0], path[1], path[path.length - 2], path[path.length - 1]]}
                     stroke={color}
                     strokeWidth={5}
                     tension={0.5}
@@ -149,7 +247,7 @@ export default function DrawingBoard() {
         } else if (selectedTool === "pen") {
             const newLine = (
                 <Line
-                    points={lines}
+                    points={path}
                     stroke={color}
                     strokeWidth={5}
                     tension={0.5}
@@ -159,9 +257,8 @@ export default function DrawingBoard() {
             );
             dispatch({type: "ADD_ELEMENT", payload: newLine});
         } else if (selectedTool === "circle") {
-            const stage = stageRef.current;
-            const point = stage.getPointerPosition();
-            const finalLines = [...lines, point.x, point.y]
+            const point = getCurrentPosition();
+            const finalLines = [...path, point.x, point.y]
 
             const radiusX = (finalLines[finalLines.length - 2] - finalLines[0]) / 2;
             const radiusY = (finalLines[finalLines.length - 1] - finalLines[1]) / 2;
@@ -180,9 +277,8 @@ export default function DrawingBoard() {
             );
             dispatch({type: "ADD_ELEMENT", payload: newCircle});
         } else if (selectedTool === "rectangle") {
-            const stage = stageRef.current;
-            const point = stage.getPointerPosition();
-            const finalLines = [...lines, point.x, point.y]
+            const point = getCurrentPosition();
+            const finalLines = [...path, point.x, point.y]
 
             const newCircle = (
                 <Rect
@@ -198,10 +294,9 @@ export default function DrawingBoard() {
         }
     };
     const handleImageClick = (event) => {
-        const stage = stageRef.current;
-        const point = stage.getPointerPosition();
+        const point = getCurrentPosition();
         if (selectedTool === "text") {
-            setLines([...lines, point.x, point.y]);
+            setPath([...path, point.x, point.y]);
             setTextInputModalVisible(true);
         }
     };
@@ -239,7 +334,7 @@ export default function DrawingBoard() {
 
     const handleTouchStart = (event) => {
         setIsDrawing(true);
-        setLines([]);
+        setPath([]);
     };
 
     const handleTouchMove = (event) => {
@@ -248,7 +343,7 @@ export default function DrawingBoard() {
         }
         const stage = stageRef.current;
         const point = stage.getPointerPosition();
-        setLines([...lines, point.x, point.y]);
+        setPath([...path, point.x, point.y]);
     };
 
     const handleTouchEnd = (event) => {
@@ -257,7 +352,7 @@ export default function DrawingBoard() {
         if (selectedTool === "pen") {
             const newLine = (
                 <Line
-                    points={lines}
+                    points={path}
                     stroke={color}
                     strokeWidth={5}
                     tension={0.5}
@@ -267,7 +362,7 @@ export default function DrawingBoard() {
             );
             dispatch({type: "ADD_ELEMENT", payload: newLine});
         } else if (selectedTool === "text") {
-            setLines([...lines, point.x, point.y]);
+            setPath([...path, point.x, point.y]);
             setTextInputModalVisible(true);
         }
     };
@@ -275,8 +370,8 @@ export default function DrawingBoard() {
     const handleOk = () => {
         const stage = stageRef.current;
 
-        const posX = lines[lines.length - 2];
-        const posY = lines[lines.length - 1];
+        const posX = path[path.length - 2];
+        const posY = path[path.length - 1];
 
         const maxWidth = Math.min(
             posX,
@@ -299,6 +394,8 @@ export default function DrawingBoard() {
         );
         dispatch({type: "ADD_ELEMENT", payload: newText});
         setTextInputModalVisible(false);
+        setTextInputValue('');
+        setSelectedTool(null);
     };
 
     const handleCancel = () => {
@@ -313,7 +410,7 @@ export default function DrawingBoard() {
             {textInputModalVisible && (
                 <Modal
                     title="Enter Text"
-                    visible={textInputModalVisible}
+                    open={textInputModalVisible}
                     onOk={handleOk}
                     onCancel={handleCancel}
                 >
@@ -348,33 +445,27 @@ export default function DrawingBoard() {
                                 />
                             </label>
 
-                            <Dropdown overlay={
-                                <Menu>
-                                    {fontOptions.map((font) => (
-                                        <Menu.Item
-                                            key={font}
-                                            onClick={() => handleFontSelect(font)}
-                                        >
-                                            {font}
-                                        </Menu.Item>
-                                    ))}
-                                </Menu>
-                            }>
+                            <Dropdown
+                                menu={{
+                                    items: fontOptions.map((font) => ({
+                                        key: font,
+                                        label: font,
+                                        onClick: () => handleFontSelect(font),
+                                    })),
+                                }}
+                            >
                                 <Button>{selectedFont}</Button>
                             </Dropdown>
 
-                            <Dropdown overlay={
-                                <Menu>
-                                    {fontSize.map((size) => (
-                                        <Menu.Item
-                                            key={size}
-                                            onClick={() => handleSizeChange(size)}
-                                        >
-                                            {size}
-                                        </Menu.Item>
-                                    ))}
-                                </Menu>
-                            }>
+                            <Dropdown
+                                menu={{
+                                    items: fontSize.map((size) => ({
+                                        key: size,
+                                        label: size,
+                                        onClick: () => handleSizeChange(size),
+                                    })),
+                                }}
+                            >
                                 <Button>{size}</Button>
                             </Dropdown>
 
@@ -431,33 +522,39 @@ export default function DrawingBoard() {
                                 alignItems: "center",
                             }}
                         >
-                            <Stage
-                                width={window.innerWidth - 400}
-                                height={window.innerHeight - 200}
-                                onClick={handleImageClick}
-                                ref={stageRef}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUp}
-                                onTouchStart={handleTouchStart}
-                                onTouchMove={handleTouchMove}
-                                onTouchEnd={handleTouchEnd}
-                            >
-                                <Layer ref={layerRef}>
-                                    {image && (
-                                        <Image
-                                            image={image}
-                                            width={window.innerWidth - 400}
-                                            height={window.innerHeight - 200}
-                                            style={{objectFit: "fill"}}
-                                        />
-                                    )}
-                                    {/* <Image/> */}
-                                    {elements.map((element, index) => (
-                                        <React.Fragment key={index}>{element}</React.Fragment>
-                                    ))}
-                                </Layer>
-                            </Stage>
+                            <div style={{border: '1px solid black', padding: '0'}}>
+                                <Stage
+                                    scaleX={zoom}
+                                    scaleY={zoom}
+                                    width={window.innerWidth - 400}
+                                    height={window.innerHeight - 200}
+                                    onClick={handleImageClick}
+                                    ref={stageRef}
+                                    onMouseDown={handleMouseDown}
+                                    onMouseMove={handleMouseMove}
+                                    onMouseUp={handleMouseUp}
+                                    onTouchStart={handleTouchStart}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
+                                >
+                                    <Layer ref={layerRef}>
+                                        {image && (
+                                            <Image
+                                                onLoad={handleImageLoad}
+                                                image={image}
+                                                width={window.innerWidth - 400}
+                                                height={window.innerHeight - 200}
+                                                style={{objectFit: "fill"}}
+                                            />
+                                        )}
+                                        {/* <Image/> */}
+                                        {previewElement}
+                                        {elements.map((element, index) => (
+                                            <React.Fragment key={index}>{element}</React.Fragment>
+                                        ))}
+                                    </Layer>
+                                </Stage>
+                            </div>
                         </div>
                     </Col>
                 </Row>
